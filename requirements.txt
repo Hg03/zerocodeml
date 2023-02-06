@@ -1,0 +1,8 @@
+streamlit
+streamlit-lottie
+pandas
+ydata-profiling
+streamlit-pandas-profiling
+streamlit-aggrid
+pycaret
+pillow
