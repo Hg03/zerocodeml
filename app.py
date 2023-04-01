@@ -1,6 +1,6 @@
 import pandas as pd
 import streamlit as st
-import ydata_profiling as pp
+import ydata_profiling
 from streamlit_pandas_profiling import st_profile_report as spp
 from streamlit_lottie import st_lottie
 from st_aggrid import AgGrid
@@ -12,7 +12,7 @@ from PIL import Image
 img = Image.open('assets/deeplearning.png')
 st.set_page_config(layout='wide',page_title='zerocodeml',page_icon = img)
 
-@st.cache
+@st.cache_data
 def load_lottieurl(url: str):
     r = requests.get(url)
     if r.status_code != 200:
@@ -20,13 +20,30 @@ def load_lottieurl(url: str):
     return r.json()
 
 
+def model_analysis(reg,type):
+    st.markdown("Here, we've analyzed number of models for you, and selects the best 🧠")
+    best = compare_models()
+    table = pull()
+    st.table(table)
+    if type == 'regression':
+        plot_needed = st.selectbox('Want to see evaluation plots',['--','residuals','error','manifold','learning'])
+        if not plot_needed == '--': 
+            graph = plot_model(best,plot=plot_needed,display_format='streamlit')
+            
+            
+
+    elif type == 'classification':
+        plot_needed = st.selectbox('Want to see evaluation plots',['--','confusion_matrix','auc','error','pr'])
+        if not plot_needed == '--': 
+            graph = plot_model(best,plot=plot_needed,display_format='streamlit')
+
 def visualize_data(df):
     st.subheader('Sample Data')
     AgGrid(df.head(10))
     report = df.profile_report()
     spp(report)
 
-def pre_regression(df,num_feat,cat_feat,independent_feat,ignore_feat,target):
+def pre_regression(df,num_feat,cat_feat,independent_feat,ignore_feat,target,reg = None):
     
     pre_steps = {'Impute The Missing Values (Numeric)':['mean','median','zero'],'Impute The Missing Values (Categorical)':['mode','not available']}
     to_do = {'Impute The Missing Values (Numeric)':None,'Impute The Missing Values (Categorical)':None}
@@ -192,9 +209,15 @@ def pre_regression(df,num_feat,cat_feat,independent_feat,ignore_feat,target):
         reg = setup(data=df,target=target,numeric_features=num_feat,categorical_features=cat_feat,ignore_feat = ignore_feat)
 
 
+    if reg is not None:
+        st.warning("Have you done with your preprocessing steps ??")
+        if st.button('Yes'):
+            if 'model' not in st.session_state and 'model_type' not in st.session_state:
+                st.session_state['model'] = reg
+                st.session_state['model_type'] = 'regression'
 
 
-def pre_classification(df,num_feat,cat_feat,independent_feat,ignore_feat,target):
+def pre_classification(df,num_feat,cat_feat,independent_feat,ignore_feat,target,reg = None):
     pre_steps = {'Impute The Missing Values (Numeric)':['mean','median','zero'],'Impute The Missing Values (Categorical)':['mode','not available']}
     to_do = {'Impute The Missing Values (Numeric)':None,'Impute The Missing Values (Categorical)':None}
     steps = st.multiselect('To clean the data and get the accurate model',pre_steps.keys())
@@ -356,6 +379,14 @@ def pre_classification(df,num_feat,cat_feat,independent_feat,ignore_feat,target)
     elif (not ignore_feat and (to_do['Impute The Missing Values (Numeric)'] and to_do['Impute The Missing Values (Categorical)'] and remove_outliers and normalize and encode)):
         reg = setup(data=df,target=target,numeric_features=num_feat,categorical_features=cat_feat,ignore_feat = ignore_feat)
 
+
+    if reg is not None:
+        st.warning("Have you done with your preprocessing steps ??")
+        if st.button('Yes'):
+            if 'model' not in st.session_state and 'model_type' not in st.session_state:
+                st.session_state['model'] = reg
+                st.session_state['model_type'] = 'classification'
+
 def preprocess_data(df):
     target = st.selectbox('Please select the target variable',list(df.columns))
     if df[target].nunique() > 6:
@@ -414,11 +445,16 @@ if data is not None:
     else:
         df = pd.read_csv(data)
 
-        select_ = st.sidebar.radio('Select what you need ?',['Visualize','Preprocess','Download'])
+        select_ = st.sidebar.radio('Select what you need ?',['Visualize','Preprocess','Model Analysis'])
         if select_ == 'Visualize':
             visualize_data(df)
         if select_ == 'Preprocess':
             preprocess_data(df)
+        if select_ == 'Model Analysis':
+            if st.session_state['model']:
+                model_analysis(st.session_state['model'],st.session_state['model_type'])
+
+
 
 
 
