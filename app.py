@@ -8,6 +8,7 @@ from pycaret.classification import *
 from pycaret.regression import *
 import requests
 from PIL import Image
+import plotly_express as px
 
 img = Image.open('assets/deeplearning.png')
 st.set_page_config(layout='wide',page_title='zerocodeml',page_icon = img)
@@ -39,9 +40,31 @@ def model_analysis(reg,type):
 
 def visualize_data(df):
     st.subheader('Sample Data')
-    AgGrid(df.head(10))
-    report = df.profile_report()
-    spp(report)
+    st.table(df.head())
+    st.divider()
+    target = st.selectbox(label='Select the target variable',options=df.columns)
+    st.divider()
+    col1,col2 = st.columns(2)
+    features = df.drop(target,axis=1)
+    num_cols = num_cols = df._get_numeric_data().columns
+    cat_cols = [col for col in df.columns if col not in num_cols]
+    with col1:
+        x = st.selectbox(label='Plot Scatter plots',options=num_cols)
+        color = st.selectbox(label='Any filter ?',options = cat_cols)
+        st.plotly_chart(px.scatter(df,x=x,y=target,color=color),sharing='streamlit',theme='streamlit')
+    with col2:
+        names = st.selectbox('Select the categorical column whom you want to see distribution',options=cat_cols)
+        st.plotly_chart(px.pie(df,names=names),sharing='streamlit',theme='streamlit')
+    
+    st.divider()
+    box_col = st.selectbox(label='Identify the outliers',options=num_cols)
+    st.plotly_chart(px.box(df,y=box_col))
+    st.divider()
+
+
+    # AgGrid(df.head(10))
+    # report = df.profile_report()
+    # spp(report)
 
 def pre_regression(df,num_feat,cat_feat,independent_feat,ignore_feat,target,reg = None):
     
